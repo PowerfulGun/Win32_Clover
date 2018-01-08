@@ -3,8 +3,10 @@
 
 #include "stdafx.h"
 #include "Win32_Clover.h"
+#include	<math.h>
 
 #define MAX_LOADSTRING 100
+#define	TWO_PI	(2.0*3.14159)
 
 // 全局变量: 
 HINSTANCE hInst;                                // 当前实例
@@ -123,8 +125,44 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	static HRGN	hRgnClip;
+	static int	cxClient, cyClient;
+	double	fAngle, fRadius;
+	HDC	hdc;
+	HRGN	hRgnTemp[6];
+	PAINTSTRUCT	ps;
+
     switch (message)
     {
+    case WM_SIZE:
+	{
+	    cxClient = LOWORD(lParam);
+	    cyClient = HIWORD(lParam);
+
+	    if (hRgnClip)
+	    {
+		    DeleteObject(hRgnClip);
+	    }
+
+	    hRgnTemp[0] = CreateEllipticRgn(0, cyClient / 3, cxClient / 2, 2 * cyClient / 3);	//创建左边的椭圆区域
+	    hRgnTemp[1] = CreateEllipticRgn(cxClient / 2, cyClient / 3, cxClient, 2 * cyClient / 3);	//创建右边的椭圆区域
+	    hRgnTemp[2] = CreateEllipticRgn(cxClient / 3, 0, 2 * cxClient / 3, cyClient / 2);	//创建上边的椭圆区域
+	    hRgnTemp[3] = CreateEllipticRgn(cxClient / 3, cyClient / 2, 2 * cxClient / 3, cyClient);	//创建下边的椭圆区域
+	    //创建三个“空”区域用于合并
+	    hRgnTemp[4] = CreateRectRgn(0, 0, 1, 1);
+	    hRgnTemp[5] = CreateRectRgn(0, 0, 1, 1);
+	    hRgnClip = CreateRectRgn(0, 0, 1, 1);
+	    //合并区域
+	    CombineRgn(hRgnTemp[4], hRgnTemp[0], hRgnTemp[1], RGN_OR);	//将左右椭圆区域合并
+	    CombineRgn(hRgnTemp[5], hRgnTemp[2], hRgnTemp[3], RGN_OR);	//将上下椭圆区域合并
+	    CombineRgn(hRgnClip, hRgnTemp[4], hRgnTemp[5], RGN_XOR);	//最后将区域合并到一起，RGN_XOR标识表示要从结果区域中排除重叠的区域
+
+	    for (int i = 0; i < 6; i++)
+	    {
+		    DeleteObject(hRgnTemp[i]);
+	    }
+	    return	0;
+	}
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -144,13 +182,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_PAINT:
         {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
+            hdc = BeginPaint(hWnd, &ps);
             // TODO: 在此处添加使用 hdc 的任何绘图代码...
+	SetViewportOrgEx(hdc, cxClient / 2, cyClient / 2, NULL);
+	SelectClipRgn(hdc, hRgnClip);
+
+	fRadius = hypot(cxClient / 2.0, cyClient / 2.0);
+
+	for (fAngle = 0; fAngle < TWO_PI; fAngle+=TWO_PI/360)
+	{
+		MoveToEx(hdc, 0, 0, NULL);
+		LineTo(hdc, fRadius*cos(fAngle),
+			-fRadius*sin(fAngle));
+	}
             EndPaint(hWnd, &ps);
         }
         break;
     case WM_DESTROY:
+	    DeleteObject(hRgnClip);
         PostQuitMessage(0);
         break;
     default:
