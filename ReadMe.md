@@ -5,6 +5,7 @@
 CLOVER程序由四个椭圆形成一个区域，然后把这个区域选入设备环境，接着从窗口的客户区中心发散绘制一系列直线。这些直线仅出现裁剪区域内。
 如果使用传统的方法绘制这个图形，必须依据椭圆的圆周公式计算出每条线段的端点。但是通过使用一个复杂的裁剪区域，就可以直接绘制直线，
 而让windows去确定这些端点。
+![image](https://github.com/PowerfulGun/Win32_Clover/blob/master/Clover.png)
 核心API函数：
 CreateEllipticRgn---创建椭圆区域
 CreateRectRgn---创建矩形区域
